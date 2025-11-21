@@ -1,0 +1,18 @@
+{
+  "editor.formatOnSave": true,
+  "python.testing.pytestArgs": ["tests"],
+  "python.testing.pytestEnabled": true,
+  "git.rebaseWhenSync": true,
+  "notebook.formatOnSave.enabled": true,
+  "files.eol": "\n",
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
+  },
+  "window.title": "${dirty}${rootName}${separator}${activeEditorShort}"
+}
