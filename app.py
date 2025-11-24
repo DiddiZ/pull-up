@@ -1,12 +1,14 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import dash_bootstrap_components as dbc
 import pandas as pd
+import plotly.graph_objs as go
 from dash import Dash, Input, Output, callback, dcc, html
+from dash_bootstrap_templates import load_figure_template
 
 
-class Storage:
+class Storage:  # TODO: Move to separate file
     """Simple CSV data torage."""
 
     def __init__(self, file: Path) -> None:
@@ -45,32 +47,56 @@ class Storage:
             raise ValueError("Pull ups already recorded for this date")
 
         days_passed = (date.date() - last[0].date()).days
-        return max(last[1] - days_passed, 1)
+        return max(last[1] + 1 - (days_passed - 1), 1)
 
 
 storage = Storage(Path("pull_ups.csv"))
 
-app = Dash(external_stylesheets=[dbc.themes.SLATE])
 
+load_figure_template("slate")
+fig = go.Figure(  # TODO: Move to separate function
+    data=go.Scatter(x=storage.data.index, y=storage.data["count"], mode="lines+markers", line=dict(color="#5bc0de")),
+)
+fig.layout.update(
+    xaxis_range=[datetime.now() - timedelta(days=30), datetime.now() + timedelta(days=1)],
+    yaxis_range=[0, max(storage.data["count"].max() + 2, 10)],
+    margin=dict(l=0, r=0, t=0, b=0),
+    height=200,
+)
 
+app = Dash(external_stylesheets=[dbc.themes.SLATE], title="Pull-up", update_title=None)
 app.layout = (
     dbc.Container(
-        [
-            html.H1("Pull Up Tracker"),
-            html.Div(id="pull-up-target"),
-            dbc.ButtonGroup([
-                dbc.Button("I did it!", color="success", id="success-button"),
-            ]),
-            dcc.Interval(id="interval-component", interval=1 * 1000, n_intervals=0),  # in milliseconds
-        ],
-        fluid="sm",
+        dbc.Row(
+            dbc.Col(
+                html.Div(
+                    [
+                        html.H1("Pull-up Tracker"),
+                        html.Hr(className="my-2"),
+                        dcc.Graph(figure=fig),  # TODO: Update figure
+                        html.Br(),
+                        dbc.Button(
+                            "Loading...",
+                            id="success-button",
+                            color="success",
+                            size="lg",
+                            disabled=True,
+                        ),
+                    ],
+                    className="p-4 bg-primary rounded-3",
+                ),
+                width=6,
+            ),
+            justify="center",
+        )
     ),
+    dcc.Interval(id="interval-component", interval=60 * 1000, n_intervals=0),  # in milliseconds
 )
 
 
 @callback(
     Output("success-button", "disabled"),
-    Output("pull-up-target", "children"),
+    Output("success-button", "children"),
     Input("interval-component", "n_intervals"),
     Input("success-button", "n_clicks"),
 )
@@ -78,12 +104,13 @@ def update_metrics(*n: int) -> tuple[bool, str]:
     """Update pull up target and button state."""
     if storage.did_pull_ups(datetime.now()):
         return True, "You have already completed your pull ups for today. Great job!"
-    return False, f"Your pull up target for today is: {storage.pull_ups_for_date(datetime.now())}"
+    return False, f"I did my {storage.pull_ups_for_date(datetime.now())} pull-ups today!"
 
 
 @callback(
     Input("success-button", "n_clicks"),
     prevent_initial_call=True,
+    running=[(Output("success-button", "disabled"), True, False)],
 )
 def on_success(n_clicks: int) -> None:
     """Handle success button click."""
@@ -93,20 +120,3 @@ def on_success(n_clicks: int) -> None:
 
 if __name__ == "__main__":
     app.run()
-
-    # if storage.did_pull_ups(datetime.now()):
-    #     print("Already did pull ups today")
-    # else:
-    #     print("Do your pull ups:", storage.pull_ups_for_date(datetime.now()))
-
-    # storage.add_pull_ups(datetime.now() - timedelta(hours=24), 10)
-    # if storage.did_pull_ups(datetime.now()):
-    #     print("Already did pull ups today")
-    # else:
-    #     print("Do your pull ups:", storage.pull_ups_for_date(datetime.now()))
-
-    # storage.add_pull_ups(datetime.now(), 10)
-    # if storage.did_pull_ups(datetime.now()):
-    #     print("Already did pull ups today")
-    # else:
-    #     print("Do your pull ups:", storage.pull_ups_for_date(datetime.now()))
