@@ -4,7 +4,7 @@ from pathlib import Path
 import dash_bootstrap_components as dbc
 import pandas as pd
 import plotly.graph_objs as go
-from dash import Dash, Input, Output, callback, dcc, html
+from dash import Dash, Input, Output, callback, dcc, html, no_update
 from dash_bootstrap_templates import load_figure_template
 
 
@@ -54,15 +54,24 @@ storage = Storage(Path("pull_ups.csv"))
 
 
 load_figure_template("slate")
-fig = go.Figure(  # TODO: Move to separate function
-    data=go.Scatter(x=storage.data.index, y=storage.data["count"], mode="lines+markers", line=dict(color="#5bc0de")),
-)
-fig.layout.update(
-    xaxis_range=[datetime.now() - timedelta(days=30), datetime.now() + timedelta(days=1)],
-    yaxis_range=[0, max(storage.data["count"].max() + 2, 10)],
-    margin=dict(l=0, r=0, t=0, b=0),
-    height=200,
-)
+
+
+def create_figure() -> go.Figure:
+    """Create the pull-up progress figure."""
+
+    fig = go.Figure(
+        data=go.Scatter(
+            x=storage.data.index, y=storage.data["count"], mode="lines+markers", line=dict(color="#5bc0de")
+        ),
+    )
+    fig.layout.update(
+        xaxis_range=[datetime.now() - timedelta(days=30), datetime.now() + timedelta(days=1)],
+        yaxis_range=[0, max(storage.data["count"].max() + 2, 10)],
+        margin=dict(l=0, r=0, t=0, b=0),
+        height=200,
+    )
+    return fig
+
 
 app = Dash(external_stylesheets=[dbc.themes.SLATE], title="Pull-up", update_title=None)
 app.layout = (
@@ -73,22 +82,25 @@ app.layout = (
                     [
                         html.H1("Pull-up Tracker"),
                         html.Hr(className="my-2"),
-                        dcc.Graph(figure=fig),  # TODO: Update figure
+                        dcc.Graph(figure=create_figure(), id="pull-up-graph"),
                         html.Br(),
                         dbc.Button(
                             "Loading...",
                             id="success-button",
                             color="success",
-                            size="lg",
                             disabled=True,
+                            class_name="w-100",
                         ),
                     ],
                     className="p-4 bg-primary rounded-3",
                 ),
-                width=6,
+                md=12,
+                lg=8,
+                xl=6,
             ),
             justify="center",
-        )
+        ),
+        fluid="md",
     ),
     dcc.Interval(id="interval-component", interval=60 * 1000, n_intervals=0),  # in milliseconds
 )
@@ -97,20 +109,21 @@ app.layout = (
 @callback(
     Output("success-button", "disabled"),
     Output("success-button", "children"),
+    Output("pull-up-graph", "figure"),
     Input("interval-component", "n_intervals"),
     Input("success-button", "n_clicks"),
 )
-def update_metrics(*n: int) -> tuple[bool, str]:
+def update_metrics(*n: int) -> tuple[bool, str, go.Figure]:
     """Update pull up target and button state."""
     if storage.did_pull_ups(datetime.now()):
-        return True, "You have already completed your pull ups for today. Great job!"
-    return False, f"I did my {storage.pull_ups_for_date(datetime.now())} pull-ups today!"
+        return True, "You have already completed your pull ups for today. Great job!", create_figure()
+    return False, f"I did my {storage.pull_ups_for_date(datetime.now())} pull-ups today!", create_figure()
 
 
 @callback(
     Input("success-button", "n_clicks"),
     prevent_initial_call=True,
-    running=[(Output("success-button", "disabled"), True, False)],
+    running=[(Output("success-button", "disabled"), True, no_update)],
 )
 def on_success(n_clicks: int) -> None:
     """Handle success button click."""
