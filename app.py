@@ -93,11 +93,22 @@ app.layout = (
                         html.Hr(className="my-2"),
                         dcc.Graph(figure=create_figure(), id="pull-up-graph"),
                         html.Br(),
-                        dbc.Button(
-                            "Loading...",
-                            id="success-button",
-                            color="success",
-                            disabled=True,
+                        dbc.ButtonGroup(
+                            [
+                                dbc.Button(
+                                    "Loading...",
+                                    id="success-button",
+                                    color="success",
+                                    disabled=True,
+                                ),
+                                dbc.DropdownMenu(
+                                    [dbc.DropdownMenuItem("Loading...", id="i-did-more-button")],
+                                    label="",
+                                    direction="end",
+                                    group=True,
+                                    color="primary",
+                                ),
+                            ],
                             class_name="w-100",
                         ),
                     ],
@@ -118,15 +129,31 @@ app.layout = (
 @callback(
     Output("success-button", "disabled"),
     Output("success-button", "children"),
+    Output("i-did-more-button", "disabled"),
+    Output("i-did-more-button", "children"),
     Output("pull-up-graph", "figure"),
     Input("interval-component", "n_intervals"),
     Input("success-button", "n_clicks"),
+    Input("i-did-more-button", "n_clicks"),
 )
-def update_metrics(*n: int) -> tuple[bool, str, go.Figure]:
+def update_metrics(*n: int) -> tuple[bool, str, bool, str, go.Figure]:
     """Update pull up target and button state."""
     if storage.did_pull_ups(datetime.now()):
-        return True, "You have already completed your pull ups for today. Great job!", create_figure()
-    return False, f"I did my {storage.pull_ups_for_date(datetime.now())} pull-ups today!", create_figure()
+        _, pull_ups = storage.get_last_pull_up()
+        return (
+            True,
+            "You have already completed your pull ups for today. Great job!",
+            False,
+            f"I did {pull_ups + 1}",
+            create_figure(),
+        )
+    return (
+        False,
+        f"I did my {storage.pull_ups_for_date(datetime.now())} pull-ups today!",
+        True,
+        "I did more",
+        create_figure(),
+    )
 
 
 @callback(
@@ -137,6 +164,18 @@ def update_metrics(*n: int) -> tuple[bool, str, go.Figure]:
 def on_success(n_clicks: int) -> None:
     """Handle success button click."""
     storage.add_pull_ups(datetime.now(), storage.pull_ups_for_date(datetime.now()))
+    storage.write()
+
+
+@callback(
+    Input("i-did-more-button", "n_clicks"),
+    prevent_initial_call=True,
+    running=[(Output("i-did-more-button", "disabled"), True, no_update)],
+)
+def on_i_did_more(n_clicks: int) -> None:
+    """Handle i did more button click."""
+    _, pull_ups = storage.get_last_pull_up()
+    storage.add_pull_ups(datetime.now(), pull_ups + 1)
     storage.write()
 
 
