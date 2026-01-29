@@ -13,7 +13,9 @@ setup(
         "black",
         "dash",
         "dash-bootstrap-components",
+        "dash-bootstrap-templates",
         "pandas",
+        "plotly",
         "tabulate",
     ],
     extras_require={

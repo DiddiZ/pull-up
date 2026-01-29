@@ -58,16 +58,25 @@ load_figure_template("slate")
 
 def create_figure() -> go.Figure:
     """Create the pull-up progress figure."""
+    fig = go.Figure()
 
-    fig = go.Figure(
-        data=go.Scatter(
-            x=storage.data.index, y=storage.data["count"], mode="lines+markers", line=dict(color="#5bc0de")
-        ),
-    )
+    # Group data by gaps larger than 3 days to create breaks in the line plot
+    groups = (storage.data.index.to_series().diff() > timedelta(days=3)).cumsum()
+    fig.add_traces([
+        go.Scatter(
+            x=group.index,
+            y=group["count"],
+            mode="lines+markers",
+            line_color="#5bc0de",
+            showlegend=False,
+        )
+        for _, group in storage.data.groupby(groups)
+    ])
+
     fig.layout.update(
         xaxis_range=[datetime.now() - timedelta(days=30), datetime.now() + timedelta(days=1)],
         yaxis_range=[0, max(storage.data["count"].max() + 2, 10)],
-        margin=dict(l=0, r=0, t=0, b=0),
+        margin={"l": 0, "r": 0, "t": 0, "b": 0},
         height=200,
     )
     return fig
