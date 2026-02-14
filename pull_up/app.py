@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import dash_bootstrap_components as dbc
@@ -15,13 +15,14 @@ class Storage:  # TODO: Move to separate file
         """Initialize storage from a CSV file."""
         self.file = file
         if file.exists():
-            self.data = pd.read_csv(file, parse_dates=["ts"], index_col="ts", date_format="ISO8601")
+            self.data = pd.read_csv("pull_ups.csv", index_col="ts", date_format="ISO8601")
+            self.data.index = pd.to_datetime(self.data.index, format="ISO8601", utc=True)
         else:
-            self.data = pd.DataFrame(columns=["count"], index=pd.DatetimeIndex([], name="ts"))
+            self.data = pd.DataFrame(columns=["count"], index=pd.DatetimeIndex([], name="ts", tz=UTC))
 
     def add_pull_ups(self, ts: datetime, count: int) -> None:
         """Add a new pull up entry."""
-        self.data = pd.concat([self.data, pd.DataFrame({"count": [count]}, pd.DatetimeIndex([ts], name="ts"))])
+        self.data = pd.concat([self.data, pd.DataFrame({"count": [count]}, pd.DatetimeIndex([ts], name="ts", tz=UTC))])
 
     def write(self) -> None:
         """Write data back to CSV file."""
@@ -74,7 +75,7 @@ def create_figure() -> go.Figure:
     ])
 
     fig.layout.update(
-        xaxis_range=[datetime.now() - timedelta(days=30), datetime.now() + timedelta(days=1)],
+        xaxis_range=[datetime.now(tz=UTC) - timedelta(days=30), datetime.now(tz=UTC) + timedelta(days=1)],
         yaxis_range=[0, max(storage.data["count"].max() + 2, 10)],
         margin={"l": 0, "r": 0, "t": 0, "b": 0},
         height=200,
@@ -138,7 +139,7 @@ app.layout = (
 )
 def update_metrics(*n: int) -> tuple[bool, str, bool, str, go.Figure]:
     """Update pull up target and button state."""
-    if storage.did_pull_ups(datetime.now()):
+    if storage.did_pull_ups(datetime.now(tz=UTC)):
         _, pull_ups = storage.get_last_pull_up()
         return (
             True,
@@ -149,7 +150,7 @@ def update_metrics(*n: int) -> tuple[bool, str, bool, str, go.Figure]:
         )
     return (
         False,
-        f"I did my {storage.pull_ups_for_date(datetime.now())} pull-ups today!",
+        f"I did my {storage.pull_ups_for_date(datetime.now(tz=UTC))} pull-ups today!",
         True,
         "I did more",
         create_figure(),
@@ -163,7 +164,7 @@ def update_metrics(*n: int) -> tuple[bool, str, bool, str, go.Figure]:
 )
 def on_success(n_clicks: int) -> None:
     """Handle success button click."""
-    storage.add_pull_ups(datetime.now(), storage.pull_ups_for_date(datetime.now()))
+    storage.add_pull_ups(datetime.now(tz=UTC), storage.pull_ups_for_date(datetime.now(tz=UTC)))
     storage.write()
 
 
@@ -175,7 +176,7 @@ def on_success(n_clicks: int) -> None:
 def on_i_did_more(n_clicks: int) -> None:
     """Handle i did more button click."""
     _, pull_ups = storage.get_last_pull_up()
-    storage.add_pull_ups(datetime.now(), pull_ups + 1)
+    storage.add_pull_ups(datetime.now(tz=UTC), pull_ups + 1)
     storage.write()
 
 
