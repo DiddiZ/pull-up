@@ -5,5 +5,5 @@ Tracker for your daily pull-ups!
 ## Usage
 
 ```bash
-py pull_up/app.py
+uv run pull_up/app.py
 ```

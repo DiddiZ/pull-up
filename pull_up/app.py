@@ -69,6 +69,7 @@ def create_figure() -> go.Figure:
             y=group["count"],
             mode="lines+markers",
             line_color="#5bc0de",
+            name="Pull-ups",
             showlegend=False,
         )
         for _, group in storage.data.groupby(groups)
