@@ -138,7 +138,7 @@ app.layout = (
     Input("success-button", "n_clicks"),
     Input("i-did-more-button", "n_clicks"),
 )
-def update_metrics(*n: int) -> tuple[bool, str, bool, str, go.Figure]:
+def update_metrics(*_n: int) -> tuple[bool, str, bool, str, go.Figure]:
     """Update pull up target and button state."""
     if storage.did_pull_ups(datetime.now(tz=UTC)):
         _, pull_ups = storage.get_last_pull_up()
@@ -163,7 +163,7 @@ def update_metrics(*n: int) -> tuple[bool, str, bool, str, go.Figure]:
     prevent_initial_call=True,
     running=[(Output("success-button", "disabled"), True, no_update)],
 )
-def on_success(n_clicks: int) -> None:
+def on_success(_n_clicks: int) -> None:
     """Handle success button click."""
     storage.add_pull_ups(datetime.now(tz=UTC), storage.pull_ups_for_date(datetime.now(tz=UTC)))
     storage.write()
@@ -174,7 +174,7 @@ def on_success(n_clicks: int) -> None:
     prevent_initial_call=True,
     running=[(Output("i-did-more-button", "disabled"), True, no_update)],
 )
-def on_i_did_more(n_clicks: int) -> None:
+def on_i_did_more(_n_clicks: int) -> None:
     """Handle i did more button click."""
     _, pull_ups = storage.get_last_pull_up()
     storage.add_pull_ups(datetime.now(tz=UTC), pull_ups + 1)
