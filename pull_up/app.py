@@ -41,7 +41,7 @@ def create_figure() -> go.Figure:
 
     fig.layout.update(
         xaxis_range=[datetime.now(tz=UTC) - timedelta(days=30), datetime.now(tz=UTC) + timedelta(days=1)],
-        yaxis_range=[0, max(storage.max_count + 2, 10)],
+        yaxis_range=[0, max((storage.get_max_count("pull-up") or 0) + 2, 10)],
         margin={"l": 0, "r": 0, "t": 0, "b": 0},
         height=200,
     )
@@ -108,8 +108,8 @@ app.layout = (
 )
 def update_metrics(*_n: int) -> tuple[bool, str, bool, str, go.Figure]:
     """Update pull up target and button state."""
-    if storage.did_pull_ups(datetime.now(tz=UTC)):
-        pull_ups = storage.get_last_pull_up()
+    if storage.did_exercise(datetime.now(tz=UTC), "pull-up"):
+        pull_ups = storage.get_last_set("pull-up")
         return (
             True,
             "You have already completed your pull ups for today. Great job!",
@@ -135,7 +135,7 @@ def on_success(n_clicks: int) -> None:
     if not n_clicks:
         return
 
-    storage.add_pull_ups(datetime.now(tz=UTC), storage.pull_ups_for_date(datetime.now(tz=UTC)))
+    storage.add_set(datetime.now(tz=UTC), "pull-up", storage.pull_ups_for_date(datetime.now(tz=UTC)))
     storage.write()
 
 
@@ -148,8 +148,8 @@ def on_i_did_more(n_clicks: int) -> None:
     if not n_clicks:
         return
 
-    pull_ups = storage.get_last_pull_up()
-    storage.add_pull_ups(datetime.now(tz=UTC), pull_ups.count + 1)
+    pull_ups = storage.get_last_set("pull-up")
+    storage.add_set(datetime.now(tz=UTC), "pull-up", pull_ups.count + 1)
     storage.write()
 
 
