@@ -7,12 +7,14 @@ dependencies = [
     "dash~=4.1.0",
     "dash-bootstrap-components~=2.0.4",
     "dash-bootstrap-templates~=2.1.0",
-    "pandas~=3.0.2",
     "plotly~=6.7.0",
+    "pydantic~=2.14.4",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
+    "pytest~=9.2.0",
+    "pytest-cov~=7.1.0",
 ]
 
 [build-system]
@@ -118,9 +120,6 @@ python_version = "{{ cookiecutter.min_python_version }}"
 # [[tool.mypy.overrides]]
 # module = ["package_without_stubs"]
 # ignore_missing_imports = true
-
-[tool.deptry]
-exclude = [".venv"]
 
 [tool.deptry.package_module_name_map] # To map stubs to their corresponding packages
 # e.g.: "pandas-stubs" = ["pandas"]
