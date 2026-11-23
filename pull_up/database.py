@@ -37,35 +37,23 @@ class Storage:
             for entry in self.data:
                 writer.writerow(entry.model_dump())
 
-    def get_sets(self, *, exercise: str | None = None, day: date | None = None) -> Iterator[ExerciseSet]:
+    def get_sets(
+        self, *, exercise: str | None = None, day: date | None = None, before: date | None = None
+    ) -> Iterator[ExerciseSet]:
         """Filter entries by exercise type."""
         for entry in self.data:
             if exercise is not None and entry.exercise != exercise:
                 continue
             if day is not None and entry.ts.date() != day:
                 continue
+            if before is not None and entry.ts.date() >= before:
+                continue
             yield entry
 
-    def did_exercise(self, ts: datetime, exercise: str) -> bool:
-        """Check if a specific exercise was done on a given date."""
-        return any(self.get_sets(exercise=exercise, day=ts.date()))
-
-    def get_last_set(self, exercise: str) -> ExerciseSet | None:
+    def get_last_set(self, exercise: str, *, before: date | None = None) -> ExerciseSet | None:
         """Get the last exercise set for a given exercise."""
-        return max(self.get_sets(exercise=exercise), key=lambda e: e.ts, default=None)
+        return max(self.get_sets(exercise=exercise, before=before), key=lambda e: e.ts, default=None)
 
-    def pull_ups_for_date(self, date: datetime) -> int:
-        """Calculate pull up target for a given date."""
-        last = self.get_last_set("pull-up")
-        if last is None:
-            return 1
-
-        if last.ts.date() >= date.date():
-            raise ValueError("Pull ups already recorded for this date")
-
-        days_passed = (date.date() - last.ts.date()).days
-        return max(last.count + 1 - (days_passed - 1), 1)
-
-    def get_max_count(self, exercise: str) -> int | None:
+    def get_max_count(self, exercise: str, *, day: date | None = None) -> int | None:
         """Get the maximum count recorded for a given exercise."""
-        return max((entry.count for entry in self.get_sets(exercise=exercise)), default=None)
+        return max((entry.count for entry in self.get_sets(exercise=exercise, day=day)), default=None)

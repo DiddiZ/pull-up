@@ -7,8 +7,10 @@ from dash import Dash, Input, Output, callback, dcc, html, no_update
 from dash_bootstrap_templates import load_figure_template
 
 from pull_up.database import Storage
+from pull_up.schedule import IncrementingExerciseSchedule
 
 storage = Storage(Path("pull_ups.csv"))
+schedule = IncrementingExerciseSchedule("pull-up")
 
 
 load_figure_template("slate")
@@ -108,19 +110,17 @@ app.layout = (
 )
 def update_metrics(*_n: int) -> tuple[bool, str, bool, str, go.Figure]:
     """Update pull up target and button state."""
-    if storage.did_exercise(datetime.now(tz=UTC), "pull-up"):
-        pull_ups = storage.get_last_set("pull-up")
-        return (
-            True,
-            "You have already completed your pull ups for today. Great job!",
-            False,
-            f"I did {pull_ups.count + 1}",
-            create_figure(),
-        )
+    today = datetime.now(tz=UTC).date()
+    target = schedule.get_target_for_date(storage, today)
+    max_count = storage.get_max_count("pull-up", day=today)
+    target_reached = max_count is not None and max_count >= target
+
     return (
-        False,
-        f"I did my {storage.pull_ups_for_date(datetime.now(tz=UTC))} pull-ups today!",
-        True,
+        target_reached,
+        "You have already completed your pull ups for today. Great job!"
+        if target_reached
+        else f"I did my {target} pull-ups today!",
+        not target_reached,
         "I did more",
         create_figure(),
     )
@@ -135,7 +135,8 @@ def on_success(n_clicks: int) -> None:
     if not n_clicks:
         return
 
-    storage.add_set(datetime.now(tz=UTC), "pull-up", storage.pull_ups_for_date(datetime.now(tz=UTC)))
+    ts = datetime.now(tz=UTC)
+    storage.add_set(ts, "pull-up", schedule.get_target_for_date(storage, ts.date()))
     storage.write()
 
 

@@ -1,8 +1,6 @@
 import shutil
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
-
-import pytest
 
 
 def test_storage_load_and_write(tmp_path: Path, data_dir: Path) -> None:
@@ -31,21 +29,13 @@ def test_storage(tmp_path: Path) -> None:
     assert storage.data == []
     assert storage.get_last_set("pull-up") is None
     assert storage.get_max_count("pull-up") is None
-    assert storage.did_exercise(datetime.now(tz=UTC), "pull-up") is False
-    assert storage.pull_ups_for_date(datetime.now(tz=UTC)) == 1
 
     # Add one
     storage.add_set(ts1 := datetime.now(tz=UTC), "pull-up", 1)
     assert storage.get_last_set("pull-up") == ExerciseSet(ts=ts1, exercise="pull-up", count=1)
     assert storage.get_max_count("pull-up") == 1
-    assert storage.did_exercise(ts1, "pull-up") is True
-    with pytest.raises(ValueError, match=r"Pull ups already recorded for this date"):
-        storage.pull_ups_for_date(datetime.now(tz=UTC))
-    assert storage.pull_ups_for_date(datetime.now(tz=UTC) + timedelta(days=1)) == 2
 
     # Add another
     storage.add_set(ts2 := datetime.now(tz=UTC), "pull-up", 2)
     assert storage.get_last_set("pull-up") == ExerciseSet(ts=ts2, exercise="pull-up", count=2)
     assert storage.get_max_count("pull-up") == 2
-    assert storage.did_exercise(ts2, "pull-up") is True
-    assert storage.pull_ups_for_date(datetime.now(tz=UTC) + timedelta(days=1)) == 3
