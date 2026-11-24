@@ -9,7 +9,7 @@ class ExerciseSchedule(ABC):
     """Interface for exercise schedules."""
 
     @abstractmethod
-    def get_target_for_date(self, storage: Storage, date: date) -> int | None:
+    def get_target_for_date(self, storage: Storage, date: date) -> int:
         """Calculate the target for a given date."""
 
 
